@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Plus, CheckCircle2 } from 'lucide-react';
+import { X, Plus, CheckCircle2, Calculator, Delete } from 'lucide-react';
 import { Category, Profile, Transaction } from '@/types/database';
 import { getLocalCategories, saveLocalTransaction, syncData } from '@/utils/storage';
 import { createClient } from '@/utils/supabase/client';
@@ -16,6 +16,34 @@ interface AddTransactionModalProps {
   onSaved: (tx: Transaction) => void;
 }
 
+// Safely evaluate simple math expressions like 15000 + 20000
+function evaluateExpression(expr: string): number {
+  try {
+    const cleaned = expr.replace(/[^\d+\-*/.]/g, '');
+    if (!cleaned) return 0;
+    const tokens = cleaned.match(/(\d+|\+|-|\*|\/)/g);
+    if (!tokens) return 0;
+    let result = 0;
+    let currentOp = '+';
+    for (const token of tokens) {
+      if (['+', '-', '*', '/'].includes(token)) {
+        currentOp = token;
+      } else {
+        const num = parseFloat(token);
+        if (!isNaN(num)) {
+          if (currentOp === '+') result += num;
+          else if (currentOp === '-') result -= num;
+          else if (currentOp === '*') result *= num;
+          else if (currentOp === '/' && num !== 0) result = Math.floor(result / num);
+        }
+      }
+    }
+    return Math.max(0, Math.floor(result));
+  } catch {
+    return 0;
+  }
+}
+
 export function AddTransactionModal({
   isOpen,
   onClose,
@@ -25,6 +53,7 @@ export function AddTransactionModal({
 }: AddTransactionModalProps) {
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [amountStr, setAmountStr] = useState('');
+  const [expression, setExpression] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [transactionDate, setTransactionDate] = useState(() => {
     return new Date().toISOString().split('T')[0];
@@ -69,14 +98,90 @@ export function AddTransactionModal({
     return new Intl.NumberFormat('id-ID').format(parseInt(rawNumber, 10));
   };
 
+  const formatExpression = (expr: string) => {
+    if (!expr) return '';
+    return expr.replace(/\d+/g, (match) => {
+      return new Intl.NumberFormat('id-ID').format(parseInt(match, 10));
+    });
+  };
+
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, '');
     setAmountStr(raw);
+    setExpression(raw);
   };
 
   const handleAddQuickAmount = (val: number) => {
-    const current = parseInt(amountStr || '0', 10);
-    setAmountStr((current + val).toString());
+    const current = evaluateExpression(expression || amountStr || '0');
+    const next = current + val;
+    setExpression(next.toString());
+    setAmountStr(next.toString());
+  };
+
+  const handleKeypadPress = (key: string) => {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      try {
+        navigator.vibrate(10);
+      } catch {}
+    }
+
+    if (key === 'C') {
+      setExpression('');
+      setAmountStr('');
+      return;
+    }
+
+    if (key === 'BACKSPACE') {
+      setExpression((prev) => {
+        const current = prev || amountStr;
+        if (!current) return '';
+        if (current.endsWith(' + ') || current.endsWith(' - ')) {
+          const next = current.slice(0, -3);
+          const ev = evaluateExpression(next);
+          setAmountStr(ev > 0 ? ev.toString() : '');
+          return next;
+        }
+        const next = current.slice(0, -1);
+        const ev = evaluateExpression(next);
+        setAmountStr(ev > 0 ? ev.toString() : '');
+        return next;
+      });
+      return;
+    }
+
+    if (key === '=') {
+      const ev = evaluateExpression(expression || amountStr);
+      const str = ev > 0 ? ev.toString() : '';
+      setExpression(str);
+      setAmountStr(str);
+      return;
+    }
+
+    if (key === '+' || key === '-') {
+      setExpression((prev) => {
+        const current = prev || amountStr;
+        if (!current) return '';
+        if (current.endsWith(' + ') || current.endsWith(' - ')) {
+          return current.slice(0, -3) + ` ${key} `;
+        }
+        return current + ` ${key} `;
+      });
+      return;
+    }
+
+    // Digits: '0', '1', ..., '9', '00', '000'
+    setExpression((prev) => {
+      const current = prev || amountStr;
+      if (!current || current === '0') {
+        if (key === '0' || key === '00' || key === '000') return '';
+        setAmountStr(key);
+        return key;
+      }
+      const next = current + key;
+      const ev = evaluateExpression(next);
+      setAmountStr(ev.toString());
+      return next;
+    });
   };
 
   const handleCategoryCreated = (newCat: Category) => {
@@ -86,7 +191,7 @@ export function AddTransactionModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const numericAmount = parseInt(amountStr, 10);
+    const numericAmount = evaluateExpression(expression || amountStr);
 
     if (!numericAmount || numericAmount <= 0) {
       setError('Masukkan jumlah nominal yang valid');
@@ -142,6 +247,7 @@ export function AddTransactionModal({
     setTimeout(() => {
       setIsSuccessFeedback(false);
       setAmountStr('');
+      setExpression('');
       setDescription('');
       onClose();
     }, 600);
@@ -213,46 +319,104 @@ export function AddTransactionModal({
                 </button>
               </div>
 
-              {/* Big Amount Input */}
-              <div className="p-4 bg-white dark:bg-[#1f1e1e] rounded-2xl border border-[#100f0f]/15 dark:border-white/10 focus-within:border-[#100f0f] dark:focus-within:border-[#e4e24e] transition-all">
-                <span className="text-[11px] font-semibold text-[#64635c] dark:text-[#8e8d85] uppercase tracking-wider block mb-1">
-                  Nominal Transaksi
-                </span>
-                <div className="flex items-baseline gap-2">
+              {/* Big Amount Input & Calculator Keypad */}
+              <div className="p-4 bg-white dark:bg-[#1a1919] rounded-3xl border border-[#100f0f]/15 dark:border-white/10 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-[#64635c] dark:text-[#8e8d85] uppercase tracking-wider flex items-center gap-1.5">
+                    <Calculator size={14} className="text-[#100f0f] dark:text-[#e4e24e]" />
+                    <span>Nominal Transaksi (Kalkulator)</span>
+                  </span>
+                  {(expression.includes('+') || expression.includes('-')) && (
+                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                      = Rp {formatRupiah(evaluateExpression(expression).toString())}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-baseline gap-2 p-3 bg-[#fffdf6] dark:bg-[#100f0f] rounded-2xl border border-[#100f0f]/10 dark:border-white/10 focus-within:border-[#100f0f] dark:focus-within:border-[#e4e24e] transition-all">
                   <span className="text-2xl font-black text-[#100f0f] dark:text-[#e4e24e]">Rp</span>
                   <input
                     type="text"
-                    inputMode="numeric"
+                    inputMode="none"
                     required
                     placeholder="0"
-                    value={amountStr ? formatRupiah(amountStr) : ''}
+                    value={expression ? formatExpression(expression) : (amountStr ? formatRupiah(amountStr) : '')}
                     onChange={handleAmountChange}
-                    className="w-full text-3xl font-black text-[#100f0f] dark:text-[#fffdf6] bg-transparent focus:outline-hidden tracking-tight"
-                    autoFocus
+                    className="w-full text-2xl sm:text-3xl font-black text-[#100f0f] dark:text-[#fffdf6] bg-transparent focus:outline-hidden tracking-tight cursor-default"
                   />
                 </div>
 
                 {/* Quick Add Amount Chips */}
-                <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-[#100f0f]/5 dark:border-white/10">
-                  {[10000, 25000, 50000, 100000, 500000].map((quick) => (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[10000, 25000, 50000, 100000].map((quick) => (
                     <button
                       key={quick}
                       type="button"
                       onClick={() => handleAddQuickAmount(quick)}
-                      className="px-2.5 py-1 text-[11px] font-semibold bg-[#100f0f]/5 dark:bg-white/10 hover:bg-[#100f0f]/10 dark:hover:bg-white/15 text-[#100f0f] dark:text-[#fffdf6] rounded-full active-press transition-colors"
+                      className="px-2.5 py-1 text-[11px] font-bold bg-[#100f0f]/5 dark:bg-white/10 hover:bg-[#100f0f]/10 dark:hover:bg-white/15 text-[#100f0f] dark:text-[#fffdf6] rounded-full active-press transition-colors"
                     >
                       +{quick >= 1000 ? `${quick / 1000}k` : quick}
                     </button>
                   ))}
-                  {amountStr && (
+                  {(amountStr || expression) && (
                     <button
                       type="button"
-                      onClick={() => setAmountStr('')}
-                      className="px-2.5 py-1 text-[11px] font-semibold bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-full active-press hover:bg-red-100"
+                      onClick={() => {
+                        setAmountStr('');
+                        setExpression('');
+                      }}
+                      className="px-2.5 py-1 text-[11px] font-bold bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-full active-press hover:bg-red-100"
                     >
                       Reset
                     </button>
                   )}
+                </div>
+
+                {/* On-Screen Calculator Keypad */}
+                <div className="grid grid-cols-4 gap-1.5 pt-1">
+                  {[
+                    { label: '1', val: '1', type: 'num' },
+                    { label: '2', val: '2', type: 'num' },
+                    { label: '3', val: '3', type: 'num' },
+                    { label: '⌫', val: 'BACKSPACE', icon: Delete, type: 'action' },
+
+                    { label: '4', val: '4', type: 'num' },
+                    { label: '5', val: '5', type: 'num' },
+                    { label: '6', val: '6', type: 'num' },
+                    { label: 'C', val: 'C', type: 'clear' },
+
+                    { label: '7', val: '7', type: 'num' },
+                    { label: '8', val: '8', type: 'num' },
+                    { label: '9', val: '9', type: 'num' },
+                    { label: '+', val: '+', type: 'operator' },
+
+                    { label: '00', val: '00', type: 'num' },
+                    { label: '0', val: '0', type: 'num' },
+                    { label: '000', val: '000', type: 'num' },
+                    { label: '=', val: '=', type: 'equals' },
+                  ].map((btn) => {
+                    const Icon = btn.icon;
+                    return (
+                      <button
+                        key={btn.label}
+                        type="button"
+                        onClick={() => handleKeypadPress(btn.val)}
+                        className={`h-11 sm:h-12 rounded-2xl font-black text-base flex items-center justify-center active:scale-95 transition-all shadow-2xs select-none ${
+                          btn.type === 'num'
+                            ? 'bg-[#fffdf6] dark:bg-[#201f1f] hover:bg-[#100f0f]/5 dark:hover:bg-white/10 text-[#100f0f] dark:text-[#fffdf6] border border-[#100f0f]/15 dark:border-white/10'
+                            : btn.type === 'action'
+                            ? 'bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 border border-red-200/50 dark:border-red-900/40'
+                            : btn.type === 'clear'
+                            ? 'bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/40 font-bold'
+                            : btn.type === 'operator'
+                            ? 'bg-[#faf9b6] hover:bg-[#e4e24e] dark:bg-[#e4e24e]/20 dark:hover:bg-[#e4e24e]/40 text-[#100f0f] dark:text-[#e4e24e] border border-[#100f0f]/15 dark:border-[#e4e24e]/30 text-lg'
+                            : 'bg-[#100f0f] hover:bg-black dark:bg-[#e4e24e] dark:hover:bg-[#d8d645] text-[#fffdf6] dark:text-[#100f0f] text-lg font-black'
+                        }`}
+                      >
+                        {Icon ? <Icon size={18} /> : btn.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

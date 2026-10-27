@@ -162,34 +162,57 @@ async function runE2ETests() {
     await user1Page.click('button[data-tab="journal"]', { force: true });
     await user1Page.waitForTimeout(600);
 
-    // Input Expense 1: Rp 75.000 (Makanan & Minuman)
+    // Input Expense 1 using Calculator Keypad: Rp 75.000
     await user1Page.click('button[data-tab="add"]', { force: true });
     await user1Page.waitForSelector('h3:has-text("Pengeluaran Baru")', { timeout: 5000 });
-    await user1Page.fill('input[placeholder="0"]', '75000');
+    await user1Page.waitForSelector('span:has-text("Nominal Transaksi (Kalkulator)")', { timeout: 5000 });
+    
+    // Tap 7, 5, 000 on on-screen calculator keypad
+    await user1Page.click('div.grid-cols-4 button:has-text("7")', { force: true });
+    await user1Page.click('div.grid-cols-4 button:has-text("5")', { force: true });
+    await user1Page.click('div.grid-cols-4 button:has-text("000")', { force: true });
+    console.log('  ✓ Entered Rp 75.000 via on-screen calculator keypad.');
+
     await user1Page.fill('input[placeholder*="Makan siang"]', 'Makan Siang Soto Ayam');
     await user1Page.click('button:has-text("Simpan Catatan")', { force: true });
     await user1Page.waitForSelector('text="Makan Siang Soto Ayam"', { timeout: 10000 });
     console.log('  ✓ Pengeluaran Rp 75.000 recorded and rendered in feed.');
     await user1Page.waitForTimeout(1000); // Wait for modal close animation
 
-    // Input Income 1: Rp 5.000.000
+    // Input Income 1 using Calculator Keypad: Rp 5.000.000
     await user1Page.click('button[data-tab="add"]', { force: true });
     await user1Page.waitForSelector('h3:has-text("Pengeluaran Baru")', { timeout: 5000 });
     await user1Page.click('form button:has-text("Pemasukan")', { force: true }); // switch to Pemasukan inside modal form
     await user1Page.waitForSelector('h3:has-text("Pemasukan Baru")', { timeout: 5000 });
-    await user1Page.fill('input[placeholder="0"]', '5000000');
+    
+    // Tap 5, 000, 000 on on-screen calculator keypad
+    await user1Page.click('div.grid-cols-4 button:has-text("5")', { force: true });
+    await user1Page.click('div.grid-cols-4 button:has-text("000")', { force: true });
+    await user1Page.click('div.grid-cols-4 button:has-text("000")', { force: true });
+    console.log('  ✓ Entered Rp 5.000.000 via on-screen calculator keypad.');
+
     await user1Page.fill('input[placeholder*="Makan siang"]', 'Bonus Proyek');
     await user1Page.click('button:has-text("Simpan Catatan")', { force: true });
     await user1Page.waitForSelector('text="Bonus Proyek"', { timeout: 10000 });
     console.log('  ✓ Pemasukan Rp 5.000.000 recorded and rendered in feed.');
     await user1Page.waitForTimeout(1000);
 
-    // Check Reports Tab
+    // Check Reports Tab & Month Selection
     await user1Page.click('button[data-tab="reports"]', { force: true });
     await user1Page.waitForSelector('h2:has-text("Statistik & Analisis")', { timeout: 10000 });
     await user1Page.waitForTimeout(500);
     await user1Page.waitForSelector('text=/5\.000\.000/', { timeout: 10000 });
     await user1Page.waitForSelector('text=/75\.000/', { timeout: 10000 });
+
+    // Test Month Picker Navigator
+    await user1Page.waitForSelector('button[title="Bulan Sebelumnya"]', { timeout: 5000 });
+    await user1Page.click('button[title="Bulan Sebelumnya"]', { force: true });
+    await user1Page.waitForTimeout(500);
+    console.log('  ✓ Month navigator traversed to previous month.');
+    // Return to current month
+    await user1Page.click('button:has-text("Bulan Ini")', { force: true });
+    await user1Page.waitForTimeout(500);
+    console.log('  ✓ Month navigator returned to current month.');
     console.log('  ✓ Reports tab displays accurate Income, Expense, and Net Balance!');
 
     // ----------------------------------------------------
