@@ -3,84 +3,23 @@
 import React, { useState, useMemo } from 'react';
 import { Group, Transaction } from '@/types/database';
 import { IconRenderer } from './IconRenderer';
-import { TrendingUp, TrendingDown, Wallet, PieChart, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { MonthFilterBar } from './MonthFilterBar';
+import { useDateFilter } from '@/context/DateFilterContext';
+import { TrendingUp, TrendingDown, Wallet, PieChart } from 'lucide-react';
 
 interface ReportsViewProps {
   currentGroup: Group | null;
   transactions: Transaction[];
 }
 
-type TimeframeOption = 'this_month' | 'last_month' | 'custom_month' | 'last_30_days' | 'all';
-
 export function ReportsView({ currentGroup, transactions }: ReportsViewProps) {
-  const [timeframe, setTimeframe] = useState<TimeframeOption>('this_month');
+  const { filterTransactions, timeframeLabel } = useDateFilter();
   const [breakdownType, setBreakdownType] = useState<'expense' | 'income'>('expense');
 
-  // Year-Month state in YYYY-MM format (e.g. 2026-10)
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
-
-  const formatMonthDisplay = (yearMonth: string) => {
-    try {
-      const [y, m] = yearMonth.split('-').map(Number);
-      const d = new Date(y, m - 1, 1);
-      return new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(d);
-    } catch {
-      return yearMonth;
-    }
-  };
-
-  const handlePrevMonth = () => {
-    const [y, m] = selectedMonth.split('-').map(Number);
-    const prevDate = new Date(y, m - 2, 1);
-    const nextVal = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
-    setSelectedMonth(nextVal);
-    setTimeframe('custom_month');
-  };
-
-  const handleNextMonth = () => {
-    const [y, m] = selectedMonth.split('-').map(Number);
-    const nextDate = new Date(y, m, 1);
-    const nextVal = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}`;
-    setSelectedMonth(nextVal);
-    setTimeframe('custom_month');
-  };
-
-  // Filter transactions by timeframe
+  // Filter transactions by global timeframe
   const filteredTransactions = useMemo(() => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-
-    return transactions.filter((t) => {
-      if (timeframe === 'all') return true;
-      const tDate = new Date(t.transaction_date);
-
-      if (timeframe === 'this_month') {
-        return tDate.getFullYear() === currentYear && tDate.getMonth() === currentMonth;
-      }
-
-      if (timeframe === 'last_month') {
-        const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-        const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-        return tDate.getFullYear() === lastMonthYear && tDate.getMonth() === lastMonth;
-      }
-
-      if (timeframe === 'custom_month') {
-        const [y, m] = selectedMonth.split('-').map(Number);
-        return tDate.getFullYear() === y && tDate.getMonth() === (m - 1);
-      }
-
-      if (timeframe === 'last_30_days') {
-        const diffMs = now.getTime() - tDate.getTime();
-        return diffMs >= 0 && diffMs <= 30 * 24 * 60 * 60 * 1000;
-      }
-
-      return true;
-    });
-  }, [transactions, timeframe, selectedMonth]);
+    return filterTransactions(transactions);
+  }, [transactions, filterTransactions]);
 
   // Aggregate totals
   const { totalIncome, totalExpense, netBalance } = useMemo(() => {
@@ -164,93 +103,21 @@ export function ReportsView({ currentGroup, transactions }: ReportsViewProps) {
 
   return (
     <div className="space-y-6 page-transition pb-20">
-      {/* Header & Filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <span className="text-[11px] font-semibold text-[#64635c] dark:text-[#8e8d85] uppercase tracking-wider">
-            Laporan Keuangan: {currentGroup?.name || 'Grup Aktif'}
-          </span>
+      {/* Header */}
+      <div>
+        <span className="text-[11px] font-semibold text-[#64635c] dark:text-[#8e8d85] uppercase tracking-wider">
+          Laporan Keuangan: {currentGroup?.name || 'Grup Aktif'}
+        </span>
+        <div className="flex items-center justify-between gap-2 mt-0.5">
           <h2 className="text-2xl font-black text-[#100f0f] dark:text-[#fffdf6]">Statistik & Analisis</h2>
-        </div>
-
-        {/* Timeframe Chips */}
-        <div className="flex flex-wrap gap-1.5 p-1 bg-white dark:bg-[#1a1919] rounded-2xl border border-[#100f0f]/15 dark:border-white/10 self-start">
-          {[
-            { id: 'this_month', label: 'Bulan Ini' },
-            { id: 'last_month', label: 'Bulan Lalu' },
-            { id: 'custom_month', label: 'Pilih Bulan' },
-            { id: 'last_30_days', label: '30 Hari' },
-            { id: 'all', label: 'Semua' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                if (tab.id === 'this_month') {
-                  const now = new Date();
-                  setSelectedMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
-                } else if (tab.id === 'last_month') {
-                  const now = new Date();
-                  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                  setSelectedMonth(`${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`);
-                }
-                setTimeframe(tab.id as TimeframeOption);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all active-press ${
-                timeframe === tab.id
-                  ? 'bg-[#100f0f] dark:bg-white/20 text-[#fffdf6]'
-                  : 'text-[#64635c] dark:text-[#8e8d85] hover:text-[#100f0f] dark:hover:text-[#fffdf6]'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-[#100f0f]/5 dark:bg-white/10 text-[#64635c] dark:text-[#8e8d85]">
+            {timeframeLabel}
+          </span>
         </div>
       </div>
 
-      {/* Month Navigator & Selector Bar */}
-      {(timeframe === 'this_month' || timeframe === 'last_month' || timeframe === 'custom_month') && (
-        <div className="p-3 bg-white dark:bg-[#1a1919] rounded-2xl border border-[#100f0f]/15 dark:border-white/10 flex items-center justify-between gap-3 shadow-2xs page-transition">
-          <button
-            type="button"
-            onClick={handlePrevMonth}
-            className="p-2 rounded-xl bg-[#100f0f]/5 hover:bg-[#100f0f]/10 dark:bg-white/10 dark:hover:bg-white/15 text-[#100f0f] dark:text-[#fffdf6] active-press transition-colors"
-            title="Bulan Sebelumnya"
-          >
-            <ChevronLeft size={16} />
-          </button>
-
-          <div className="relative flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl bg-[#fffdf6] dark:bg-[#100f0f] border border-[#100f0f]/10 dark:border-white/10 hover:border-[#100f0f]/30 dark:hover:border-white/30 transition-all cursor-pointer">
-            <Calendar size={15} className="text-[#100f0f] dark:text-[#e4e24e]" />
-            <span className="text-xs sm:text-sm font-black text-[#100f0f] dark:text-[#fffdf6]">
-              {formatMonthDisplay(selectedMonth)}
-            </span>
-            <span className="text-[10px] font-semibold text-[#64635c] dark:text-[#8e8d85] underline">
-              (Ganti)
-            </span>
-            <input
-              type="month"
-              value={selectedMonth}
-              onChange={(e) => {
-                if (e.target.value) {
-                  setSelectedMonth(e.target.value);
-                  setTimeframe('custom_month');
-                }
-              }}
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-              title="Pilih Bulan & Tahun"
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={handleNextMonth}
-            className="p-2 rounded-xl bg-[#100f0f]/5 hover:bg-[#100f0f]/10 dark:bg-white/10 dark:hover:bg-white/15 text-[#100f0f] dark:text-[#fffdf6] active-press transition-colors"
-            title="Bulan Berikutnya"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      )}
+      {/* Global Month Filter Bar */}
+      <MonthFilterBar />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -348,30 +215,30 @@ export function ReportsView({ currentGroup, transactions }: ReportsViewProps) {
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
                     <div
-                      className="w-6 h-6 rounded-lg flex items-center justify-center text-white"
-                      style={{ backgroundColor: cat.color || '#100f0f' }}
+                      className="w-5 h-5 rounded-md flex items-center justify-center text-white"
+                      style={{ backgroundColor: cat.color || '#64635c' }}
                     >
-                      <IconRenderer name={cat.icon} size={14} />
+                      <IconRenderer name={cat.icon} size={12} />
                     </div>
                     <span className="font-bold text-[#100f0f] dark:text-[#fffdf6]">{cat.name}</span>
                   </div>
-                  <div className="text-right">
-                    <span className="font-black text-[#100f0f] dark:text-[#fffdf6]">
+                  <div className="flex items-center gap-2 font-mono">
+                    <span className="font-bold text-[#100f0f] dark:text-[#fffdf6]">
                       {formatCurrency(cat.total)}
                     </span>
-                    <span className="ml-2 text-[11px] font-semibold text-[#64635c] dark:text-[#8e8d85]">
-                      ({cat.percentage.toFixed(1)}%)
+                    <span className="text-[11px] text-[#64635c] dark:text-[#8e8d85] w-12 text-right">
+                      {cat.percentage.toFixed(1)}%
                     </span>
                   </div>
                 </div>
 
-                {/* Visual Progress Bar */}
-                <div className="h-2 w-full bg-[#100f0f]/5 dark:bg-white/10 rounded-full overflow-hidden">
+                {/* Progress bar */}
+                <div className="w-full bg-[#100f0f]/5 dark:bg-white/5 h-2 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{
-                      width: `${cat.percentage}%`,
-                      backgroundColor: cat.color || '#e4e24e',
+                      width: `${Math.min(cat.percentage, 100)}%`,
+                      backgroundColor: cat.color || '#100f0f',
                     }}
                   />
                 </div>
@@ -381,46 +248,42 @@ export function ReportsView({ currentGroup, transactions }: ReportsViewProps) {
         )}
       </div>
 
-      {/* Member Contribution Breakdown */}
-      {memberStats.length > 0 && (
-        <div className="p-5 bg-white dark:bg-[#1a1919] rounded-3xl border border-[#100f0f]/15 dark:border-white/10 shadow-xs space-y-3">
-          <h3 className="text-base font-black text-[#100f0f] dark:text-[#fffdf6]">
-            Kontribusi Anggota Grup
-          </h3>
-          <p className="text-xs text-[#64635c] dark:text-[#8e8d85]">
-            Aktivitas input transaksi oleh masing-masing kolaborator pada periode ini.
+      {/* Contributor Breakdown Section */}
+      <div className="p-5 bg-white dark:bg-[#1a1919] rounded-3xl border border-[#100f0f]/15 dark:border-white/10 shadow-xs space-y-4">
+        <h3 className="text-base font-black text-[#100f0f] dark:text-[#fffdf6]">
+          Aktivitas Anggota
+        </h3>
+
+        {memberStats.length === 0 ? (
+          <p className="text-xs text-[#64635c] dark:text-[#8e8d85] py-4 text-center">
+            Belum ada aktivitas transaksi pada periode ini.
           </p>
-          <div className="divide-y divide-[#100f0f]/10 dark:divide-white/10 pt-1">
-            {memberStats.map((member, idx) => (
-              <div key={idx} className="py-2.5 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-[#100f0f] dark:bg-[#e4e24e] text-[#e4e24e] dark:text-[#100f0f] font-bold text-xs flex items-center justify-center">
-                    {member.name[0].toUpperCase()}
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-[#100f0f] dark:text-[#fffdf6] block">
-                      {member.name}
-                    </span>
-                    <span className="text-[10px] text-[#64635c] dark:text-[#8e8d85]">
-                      {member.count} transaksi
-                    </span>
-                  </div>
-                </div>
-                <div className="text-right text-xs">
-                  <span className="block font-black text-rose-600 dark:text-rose-400">
-                    -{formatCurrency(member.expense)}
+        ) : (
+          <div className="space-y-3">
+            {memberStats.map((m, idx) => (
+              <div
+                key={idx}
+                className="p-3 rounded-2xl bg-[#fffdf6] dark:bg-[#100f0f] border border-[#100f0f]/10 dark:border-white/10 flex items-center justify-between text-xs"
+              >
+                <div>
+                  <span className="font-black text-[#100f0f] dark:text-[#fffdf6] block">{m.name}</span>
+                  <span className="text-[10px] text-[#64635c] dark:text-[#8e8d85]">
+                    {m.count} transaksi
                   </span>
-                  {member.income > 0 && (
-                    <span className="block font-semibold text-emerald-600 dark:text-emerald-400 text-[11px]">
-                      +{formatCurrency(member.income)}
-                    </span>
-                  )}
+                </div>
+                <div className="text-right space-y-0.5">
+                  <div className="font-mono text-emerald-700 dark:text-emerald-400 font-bold">
+                    +{formatCurrency(m.income)}
+                  </div>
+                  <div className="font-mono text-[#100f0f] dark:text-[#fffdf6] font-bold">
+                    -{formatCurrency(m.expense)}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

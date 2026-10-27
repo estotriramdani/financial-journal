@@ -18,6 +18,7 @@ export function TransactionCard({ transaction, currentUserId, canEdit, onEdit, o
   const category = transaction.categories;
   const creatorName = transaction.profiles?.name || 'Anggota';
   const isLocalPending = transaction.syncStatus === 'pending_insert';
+  const isPermitted = canEdit ?? (currentUserId ? currentUserId === transaction.created_by : true);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -40,10 +41,21 @@ export function TransactionCard({ transaction, currentUserId, canEdit, onEdit, o
     }
   };
 
+  const handleCardClick = () => {
+    if (onEdit && isPermitted) {
+      onEdit(transaction);
+    }
+  };
+
   return (
-    <div className="group relative p-4 bg-white dark:bg-[#1a1919] rounded-2xl border border-[#100f0f]/10 dark:border-white/10 shadow-xs hover:border-[#100f0f]/30 dark:hover:border-white/25 transition-all flex items-center justify-between gap-3">
+    <div
+      onClick={handleCardClick}
+      className={`group relative p-3.5 sm:p-4 bg-white dark:bg-[#1a1919] rounded-2xl border border-[#100f0f]/10 dark:border-white/10 shadow-xs hover:border-[#100f0f]/30 dark:hover:border-white/25 transition-all flex items-center justify-between gap-3 ${
+        onEdit && isPermitted ? 'cursor-pointer active:scale-[0.995]' : ''
+      }`}
+    >
       {/* Category Icon & Details */}
-      <div className="flex items-center gap-3.5 min-w-0">
+      <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
         <div
           className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-xs"
           style={{
@@ -82,7 +94,7 @@ export function TransactionCard({ transaction, currentUserId, canEdit, onEdit, o
       </div>
 
       {/* Amount and Actions */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0" onClick={(e) => e.stopPropagation()}>
         <div className="text-right">
           <span
             className={`text-sm sm:text-base font-black tracking-tight ${
@@ -96,28 +108,41 @@ export function TransactionCard({ transaction, currentUserId, canEdit, onEdit, o
           </span>
         </div>
 
-        {onEdit && (canEdit ?? (currentUserId === transaction.created_by)) && (
-          <button
-            onClick={() => onEdit(transaction)}
-            className="p-1.5 text-[#64635c] hover:text-[#100f0f] dark:text-[#8e8d85] dark:hover:text-[#fffdf6] rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors opacity-70 group-hover:opacity-100"
-            title="Edit Transaksi"
-          >
-            <Pencil size={15} />
-          </button>
-        )}
+        {/* Action Buttons: Clearly visible, prominent and easy to tap */}
+        {isPermitted && (
+          <div className="flex items-center gap-1 pl-1">
+            {onEdit && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(transaction);
+                }}
+                className="p-2 text-[#100f0f] dark:text-[#fffdf6] bg-[#100f0f]/5 hover:bg-[#100f0f]/10 dark:bg-white/10 dark:hover:bg-white/20 rounded-xl transition-all active-press"
+                title="Edit Transaksi"
+                aria-label="Edit Transaksi"
+              >
+                <Pencil size={15} />
+              </button>
+            )}
 
-        {onDelete && (canEdit ?? (currentUserId === transaction.created_by)) && (
-          <button
-            onClick={() => {
-              if (confirm('Hapus transaksi ini?')) {
-                onDelete(transaction.id);
-              }
-            }}
-            className="p-1.5 text-[#64635c] hover:text-red-600 dark:text-[#8e8d85] dark:hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors opacity-70 group-hover:opacity-100"
-            title="Hapus Transaksi"
-          >
-            <Trash2 size={16} />
-          </button>
+            {onDelete && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm('Hapus transaksi ini?')) {
+                    onDelete(transaction.id);
+                  }
+                }}
+                className="p-2 text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 dark:bg-rose-500/15 dark:hover:bg-rose-500/25 rounded-xl transition-all active-press"
+                title="Hapus Transaksi"
+                aria-label="Hapus Transaksi"
+              >
+                <Trash2 size={15} />
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

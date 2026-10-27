@@ -19,6 +19,8 @@ import { AddTransactionModal } from '@/components/AddTransactionModal';
 import { ReportsView } from '@/components/ReportsView';
 import { GroupManagement } from '@/components/GroupManagement';
 import { ProfileSettings } from '@/components/ProfileSettings';
+import { MonthFilterBar } from '@/components/MonthFilterBar';
+import { useDateFilter } from '@/context/DateFilterContext';
 import { Plus, ArrowDownLeft, ArrowUpRight, Wallet, Search } from 'lucide-react';
 
 export default function HomePage() {
@@ -34,6 +36,7 @@ export default function HomePage() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
   // Filters for Journal tab
+  const { filterTransactions, timeframeLabel } = useDateFilter();
   const [typeFilter, setTypeFilter] = useState<'all' | 'expense' | 'income'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -170,11 +173,15 @@ export default function HomePage() {
     setEditingTransaction(null);
   };
 
-  // Calculations for active group
+  // Calculations for active group based on date filter
+  const dateFilteredTransactions = useMemo(() => {
+    return filterTransactions(transactions);
+  }, [transactions, filterTransactions]);
+
   const { totalIncome, totalExpense, netBalance } = useMemo(() => {
     let income = 0;
     let expense = 0;
-    for (const t of transactions) {
+    for (const t of dateFilteredTransactions) {
       if (t.type === 'income') {
         income += Number(t.amount);
       } else {
@@ -186,11 +193,11 @@ export default function HomePage() {
       totalExpense: expense,
       netBalance: income - expense,
     };
-  }, [transactions]);
+  }, [dateFilteredTransactions]);
 
-  // Filtered transactions for feed
+  // Filtered transactions for feed (date filter + type filter + search)
   const filteredTransactions = useMemo(() => {
-    return transactions.filter((t) => {
+    return dateFilteredTransactions.filter((t) => {
       if (typeFilter !== 'all' && t.type !== typeFilter) return false;
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
@@ -201,7 +208,7 @@ export default function HomePage() {
       }
       return true;
     });
-  }, [transactions, typeFilter, searchQuery]);
+  }, [dateFilteredTransactions, typeFilter, searchQuery]);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -243,13 +250,21 @@ export default function HomePage() {
       <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-5">
         {/* TAB 1: JOURNAL (FEED & QUICK INPUT) */}
         {activeTab === 'journal' && (
-          <div className="space-y-5 page-transition pb-20">
+          <div className="space-y-4 page-transition pb-20">
+            {/* Month / Timeframe Filter Bar */}
+            <MonthFilterBar />
+
             {/* Balance Overview Card */}
             <div className="p-5 sm:p-6 bg-[#100f0f] dark:bg-[#1a1919] text-[#fffdf6] rounded-3xl border border-transparent dark:border-white/10 shadow-xl space-y-4">
               <div className="flex items-center justify-between text-xs text-[#64635c] dark:text-[#8e8d85]">
-                <span className="uppercase font-bold tracking-wider text-gray-400">
-                  Saldo Kas Grup
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="uppercase font-bold tracking-wider text-gray-400">
+                    Saldo Kas Grup
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#e4e24e]/20 text-[#e4e24e] border border-[#e4e24e]/30">
+                    {timeframeLabel}
+                  </span>
+                </div>
                 <span className="font-semibold text-white px-2.5 py-0.5 rounded-full bg-white/10 text-[11px]">
                   {activeGroup?.name || 'Grup'}
                 </span>
@@ -366,7 +381,9 @@ export default function HomePage() {
                       Belum Ada Catatan Transaksi
                     </h4>
                     <p className="text-xs text-[#64635c] dark:text-[#8e8d85] mt-1 max-w-xs mx-auto">
-                      Mulai catat pengeluaran atau pemasukan pertama Anda untuk grup ini.
+                      {transactions.length > 0
+                        ? `Tidak ada transaksi untuk periode ${timeframeLabel}. Coba ganti filter periode di atas.`
+                        : 'Mulai catat pengeluaran atau pemasukan pertama Anda untuk grup ini.'}
                     </p>
                   </div>
                   <button

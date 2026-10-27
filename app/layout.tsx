@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { PwaRegister } from "@/components/PwaRegister";
 import { ThemeInitializer } from "@/components/ThemeInitializer";
+import { DateFilterProvider } from "@/context/DateFilterContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -68,7 +69,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[#fffdf6] dark:bg-[#100f0f] text-[#100f0f] dark:text-[#fffdf6] antialiased selection:bg-[#e4e24e] selection:text-[#100f0f]">
         <PwaRegister />
         <ThemeInitializer />
-        {children}
+        <DateFilterProvider>{children}</DateFilterProvider>
       </body>
     </html>
   );

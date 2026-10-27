@@ -22,7 +22,9 @@ async function preparePage(page) {
     if (msg.type() === 'error') console.log('    [BROWSER ERROR]', msg.text());
   });
   page.on('pageerror', (err) => console.log('    [PAGE EXCEPTION]', err.message));
-  await page.addStyleTag({ content: 'nextjs-portal { display: none !important; pointer-events: none !important; }' });
+  try {
+    await page.addStyleTag({ content: 'nextjs-portal { display: none !important; pointer-events: none !important; }' });
+  } catch {}
 }
 
 async function runE2ETests() {

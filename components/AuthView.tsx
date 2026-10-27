@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { getAppUrl } from '@/utils/url';
 import { ArrowRight, Lock, Mail, User, ShieldCheck, ArrowLeft, Send } from 'lucide-react';
 
 interface AuthViewProps {
@@ -31,6 +32,7 @@ export function AuthView({ onAuthSuccess }: AuthViewProps) {
           throw new Error('Nama lengkap diperlukan');
         }
 
+        const baseUrl = getAppUrl();
         const { data, error: signUpErr } = await supabase.auth.signUp({
           email: email.trim(),
           password,
@@ -38,6 +40,7 @@ export function AuthView({ onAuthSuccess }: AuthViewProps) {
             data: {
               name: name.trim(),
             },
+            emailRedirectTo: `${baseUrl}/auth/callback`,
           },
         });
 
@@ -46,7 +49,7 @@ export function AuthView({ onAuthSuccess }: AuthViewProps) {
         if (data.session) {
           onAuthSuccess();
         } else {
-          setSuccessMsg('Pendaftaran berhasil! Silakan login.');
+          setSuccessMsg('Pendaftaran berhasil! Silakan periksa email Anda untuk verifikasi atau hubungi admin.');
           setMode('login');
         }
       } else if (mode === 'login') {
@@ -62,7 +65,8 @@ export function AuthView({ onAuthSuccess }: AuthViewProps) {
           throw new Error('Masukkan alamat email terdaftar');
         }
 
-        const redirectTo = `${window.location.origin}/auth/callback?next=/reset-password`;
+        const baseUrl = getAppUrl();
+        const redirectTo = `${baseUrl}/auth/callback?next=/reset-password`;
         const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email.trim(), {
           redirectTo,
         });
