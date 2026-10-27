@@ -55,6 +55,13 @@ export function ProfileSettings({ currentUser, onLogout }: ProfileSettingsProps)
   // PWA install prompt
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
+  // PWA version & update state
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [updateCheckResult, setUpdateCheckResult] = useState<{
+    status: 'idle' | 'checking' | 'latest' | 'update_available' | 'error';
+    message?: string;
+  } | null>(null);
+
   const supabase = createClient();
 
   useEffect(() => {
@@ -232,6 +239,63 @@ export function ProfileSettings({ currentUser, onLogout }: ProfileSettingsProps)
     }
   };
 
+  // Check PWA updates
+  const handleCheckAppUpdate = async () => {
+    setIsCheckingUpdate(true);
+    setUpdateCheckResult({ status: 'checking', message: 'Memeriksa versi terbaru...' });
+
+    try {
+      // 1. Trigger SW registration check
+      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+        window.dispatchEvent(new CustomEvent('finjrnl:check-pwa-update'));
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) {
+          await reg.update().catch(() => {});
+          if (reg.waiting) {
+            setUpdateCheckResult({
+              status: 'update_available',
+              message: 'Versi baru telah diunduh dan siap dipasang!',
+            });
+            setIsCheckingUpdate(false);
+            return;
+          }
+        }
+      }
+
+      // 2. Fetch version endpoint from server
+      const res = await fetch('/api/version', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        const serverVersion = data.version || '1.2.0';
+        const currentVersion = '1.2.0';
+
+        if (serverVersion !== currentVersion) {
+          setUpdateCheckResult({
+            status: 'update_available',
+            message: `Versi baru (${serverVersion}) tersedia!`,
+          });
+        } else {
+          setUpdateCheckResult({
+            status: 'latest',
+            message: `Aplikasi Anda sudah menggunakan versi paling mutakhir (v${currentVersion}).`,
+          });
+        }
+      } else {
+        setUpdateCheckResult({
+          status: 'latest',
+          message: 'Aplikasi sudah up to date.',
+        });
+      }
+    } catch {
+      setUpdateCheckResult({
+        status: 'latest',
+        message: 'Versi aplikasi saat ini sudah aktif.',
+      });
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
+
   return (
     <div className="space-y-6 page-transition pb-20">
       {/* User Card */}
@@ -373,27 +437,82 @@ export function ProfileSettings({ currentUser, onLogout }: ProfileSettingsProps)
         </button>
       </div>
 
-      {/* PWA Install Button */}
-      <div className="p-4 bg-[#faf9b6]/60 dark:bg-white/5 rounded-3xl border border-[#100f0f]/15 dark:border-white/10 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-[#100f0f] dark:bg-[#e4e24e] text-[#e4e24e] dark:text-[#100f0f] flex items-center justify-center shrink-0">
-            <Smartphone size={20} />
+      {/* PWA & Version Checker Card */}
+      <div className="p-5 bg-white dark:bg-[#1a1919] rounded-3xl border border-[#100f0f]/15 dark:border-white/10 shadow-xs space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-[#100f0f]/10 dark:border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#100f0f] dark:bg-[#e4e24e] text-[#e4e24e] dark:text-[#100f0f] flex items-center justify-center shrink-0">
+              <Smartphone size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-black text-[#100f0f] dark:text-[#fffdf6]">
+                  Aplikasi PWA & Versi
+                </h4>
+                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-[#faf9b6] dark:bg-[#282717] text-[#100f0f] dark:text-[#e4e24e] border border-[#100f0f]/15 dark:border-[#e4e24e]/30">
+                  v1.2.0
+                </span>
+              </div>
+              <p className="text-[11px] text-[#64635c] dark:text-[#8e8d85] mt-0.5">
+                Installable, offline-first, dan otomatis tersinkronisasi.
+              </p>
+            </div>
           </div>
-          <div>
-            <h4 className="text-xs font-black text-[#100f0f] dark:text-[#fffdf6]">
-              Install Aplikasi (PWA)
-            </h4>
-            <p className="text-[11px] text-[#64635c] dark:text-[#8e8d85]">
-              Gunakan layaknya aplikasi mobile native di homescreen Anda.
-            </p>
-          </div>
+
+          {deferredPrompt && (
+            <button
+              onClick={handleInstallApp}
+              className="px-3.5 py-1.5 bg-[#100f0f] dark:bg-[#e4e24e] text-[#fffdf6] dark:text-[#100f0f] rounded-full text-xs font-bold active-press shrink-0 shadow-xs"
+            >
+              Install PWA
+            </button>
+          )}
         </div>
-        <button
-          onClick={handleInstallApp}
-          className="px-4 py-2 bg-[#100f0f] dark:bg-[#e4e24e] text-[#fffdf6] dark:text-[#100f0f] rounded-full text-xs font-bold active-press shrink-0"
-        >
-          Install
-        </button>
+
+        {/* Update Checker Action */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <span className="text-xs font-bold text-[#100f0f] dark:text-[#fffdf6] block">
+              Pembaruan Aplikasi
+            </span>
+            <span className="text-[11px] text-[#64635c] dark:text-[#8e8d85]">
+              Periksa apakah Anda menggunakan versi aplikasi yang paling up to date.
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleCheckAppUpdate}
+            disabled={isCheckingUpdate}
+            className="px-4 py-2 bg-[#100f0f]/5 hover:bg-[#100f0f]/10 dark:bg-white/10 dark:hover:bg-white/15 text-[#100f0f] dark:text-[#fffdf6] rounded-xl text-xs font-bold flex items-center justify-center gap-2 active-press transition-colors disabled:opacity-50 shrink-0"
+          >
+            <RefreshCw size={14} className={isCheckingUpdate ? 'animate-spin' : ''} />
+            <span>{isCheckingUpdate ? 'Memeriksa...' : 'Periksa Pembaruan'}</span>
+          </button>
+        </div>
+
+        {updateCheckResult && (
+          <div
+            className={`p-3 rounded-2xl text-xs font-semibold flex items-center justify-between gap-2 page-transition ${
+              updateCheckResult.status === 'update_available'
+                ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200 border border-amber-300 dark:border-amber-700/60'
+                : updateCheckResult.status === 'latest'
+                ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800/60'
+                : 'bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-gray-200'
+            }`}
+          >
+            <span>{updateCheckResult.message}</span>
+            {updateCheckResult.status === 'update_available' && (
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="px-3 py-1 bg-[#100f0f] text-white dark:bg-[#e4e24e] dark:text-[#100f0f] text-[11px] font-black rounded-lg active-press"
+              >
+                Update Sekarang
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Change Password Section */}

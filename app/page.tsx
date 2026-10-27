@@ -31,6 +31,7 @@ export default function HomePage() {
   const [activeGroup, setActiveGroup] = useState<Group | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isAddTxOpen, setIsAddTxOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
   // Filters for Journal tab
   const [typeFilter, setTypeFilter] = useState<'all' | 'expense' | 'income'>('all');
@@ -152,6 +153,21 @@ export default function HomePage() {
     setTransactions((prev) => prev.filter((t) => t.id !== id));
     // Trigger sync to delete on server
     syncData(supabase, activeGroup?.id).catch(console.error);
+  };
+
+  const handleOpenAdd = () => {
+    setEditingTransaction(null);
+    setIsAddTxOpen(true);
+  };
+
+  const handleEditTransaction = (tx: Transaction) => {
+    setEditingTransaction(tx);
+    setIsAddTxOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsAddTxOpen(false);
+    setEditingTransaction(null);
   };
 
   // Calculations for active group
@@ -312,7 +328,7 @@ export default function HomePage() {
 
                 {/* Direct quick add trigger */}
                 <button
-                  onClick={() => setIsAddTxOpen(true)}
+                  onClick={handleOpenAdd}
                   className="px-3.5 py-2 bg-[#e4e24e] text-[#100f0f] rounded-2xl text-xs font-black flex items-center gap-1 active-press hover:bg-[#d8d645] shadow-2xs"
                 >
                   <Plus size={16} />
@@ -354,7 +370,7 @@ export default function HomePage() {
                     </p>
                   </div>
                   <button
-                    onClick={() => setIsAddTxOpen(true)}
+                    onClick={handleOpenAdd}
                     className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#e4e24e] text-[#100f0f] rounded-full text-xs font-bold uppercase tracking-wider active-press shadow-xs hover:bg-[#d8d645]"
                   >
                     <Plus size={16} />
@@ -367,6 +383,13 @@ export default function HomePage() {
                     key={tx.id}
                     transaction={tx}
                     currentUserId={currentUser.id}
+                    canEdit={
+                      currentUser.id === tx.created_by ||
+                      currentUser.role === 'admin' ||
+                      activeGroup?.role === 'owner' ||
+                      activeGroup?.role === 'admin'
+                    }
+                    onEdit={handleEditTransaction}
                     onDelete={handleDeleteTransaction}
                   />
                 ))
@@ -401,16 +424,22 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* Floating Add Transaction Modal */}
+      {/* Floating Add/Edit Transaction Modal */}
       <AddTransactionModal
         isOpen={isAddTxOpen}
-        onClose={() => setIsAddTxOpen(false)}
+        onClose={handleCloseModal}
         groupId={activeGroup?.id || null}
         currentUser={currentUser}
-        onSaved={(newTx) => {
+        transactionToEdit={editingTransaction}
+        onSaved={(savedTx) => {
           setTransactions((prev) => {
-            if (prev.some((t) => t.id === newTx.id)) return prev;
-            return [newTx, ...prev];
+            const idx = prev.findIndex((t) => t.id === savedTx.id);
+            if (idx >= 0) {
+              const updated = [...prev];
+              updated[idx] = savedTx;
+              return updated;
+            }
+            return [savedTx, ...prev];
           });
         }}
       />
@@ -419,7 +448,7 @@ export default function HomePage() {
       <BottomNav
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        onOpenAddModal={() => setIsAddTxOpen(true)}
+        onOpenAddModal={handleOpenAdd}
       />
     </div>
   );

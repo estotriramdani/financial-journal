@@ -13,6 +13,7 @@ interface AddTransactionModalProps {
   onClose: () => void;
   groupId: string | null;
   currentUser: Profile | null;
+  transactionToEdit?: Transaction | null;
   onSaved: (tx: Transaction) => void;
 }
 
@@ -49,6 +50,7 @@ export function AddTransactionModal({
   onClose,
   groupId,
   currentUser,
+  transactionToEdit,
   onSaved,
 }: AddTransactionModalProps) {
   const [type, setType] = useState<'expense' | 'income'>('expense');
@@ -64,19 +66,35 @@ export function AddTransactionModal({
   const [isSuccessFeedback, setIsSuccessFeedback] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load categories
+  // Load categories and prefill on edit
   useEffect(() => {
     if (isOpen) {
+      if (transactionToEdit) {
+        setType(transactionToEdit.type);
+        setAmountStr(transactionToEdit.amount.toString());
+        setExpression(transactionToEdit.amount.toString());
+        setSelectedCategoryId(transactionToEdit.category_id || null);
+        setTransactionDate(transactionToEdit.transaction_date);
+        setDescription(transactionToEdit.description || '');
+      } else {
+        setType('expense');
+        setAmountStr('');
+        setExpression('');
+        setSelectedCategoryId(null);
+        setTransactionDate(new Date().toISOString().split('T')[0]);
+        setDescription('');
+      }
+
       const cats = getLocalCategories(groupId);
       setCategories(cats);
 
-      // Auto-select first matching category if none selected
-      const matching = cats.filter((c) => c.type === type);
-      if (matching.length > 0 && !selectedCategoryId) {
+      const targetType = transactionToEdit ? transactionToEdit.type : 'expense';
+      const matching = cats.filter((c) => c.type === targetType);
+      if (matching.length > 0 && !selectedCategoryId && !transactionToEdit) {
         setSelectedCategoryId(matching[0].id);
       }
     }
-  }, [isOpen, groupId, type]);
+  }, [isOpen, groupId, transactionToEdit]);
 
   // Handle category type change
   const handleTypeChange = (newType: 'expense' | 'income') => {
@@ -211,19 +229,23 @@ export function AddTransactionModal({
     const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
 
     const newTx: Transaction = {
-      id: crypto.randomUUID(),
-      group_id: groupId,
+      id: transactionToEdit ? transactionToEdit.id : crypto.randomUUID(),
+      group_id: transactionToEdit ? transactionToEdit.group_id : (groupId || ''),
       category_id: selectedCategoryId || null,
       type,
       amount: numericAmount,
       description: description.trim() || null,
       transaction_date: transactionDate,
-      created_by: currentUser.id,
-      created_at: new Date().toISOString(),
+      created_by: transactionToEdit ? transactionToEdit.created_by : currentUser.id,
+      created_at: transactionToEdit ? transactionToEdit.created_at : new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      syncStatus: 'pending_insert',
+      syncStatus: transactionToEdit
+        ? transactionToEdit.syncStatus === 'pending_insert'
+          ? 'pending_insert'
+          : 'pending_update'
+        : 'pending_insert',
       categories: selectedCategory || null,
-      profiles: {
+      profiles: transactionToEdit?.profiles || {
         name: currentUser.name,
         email: currentUser.email,
       },
@@ -263,10 +285,16 @@ export function AddTransactionModal({
           <div className="flex items-center justify-between pb-3.5 border-b border-[#100f0f]/10 dark:border-white/10">
             <div>
               <span className="text-[11px] font-semibold tracking-wider text-[#64635c] dark:text-[#8e8d85] uppercase">
-                Input Catatan
+                {transactionToEdit ? 'Ubah Catatan' : 'Input Catatan'}
               </span>
               <h3 className="text-xl font-black text-[#100f0f] dark:text-[#fffdf6]">
-                {type === 'expense' ? 'Pengeluaran Baru' : 'Pemasukan Baru'}
+                {transactionToEdit
+                  ? type === 'expense'
+                    ? 'Edit Pengeluaran'
+                    : 'Edit Pemasukan'
+                  : type === 'expense'
+                  ? 'Pengeluaran Baru'
+                  : 'Pemasukan Baru'}
               </h3>
             </div>
             <button
@@ -528,7 +556,7 @@ export function AddTransactionModal({
                   type="submit"
                   className="w-full py-4 px-6 rounded-full bg-[#e4e24e] hover:bg-[#d8d645] text-[#100f0f] font-black text-sm tracking-wider uppercase shadow-sm flex items-center justify-center gap-2 active-press transition-colors"
                 >
-                  Simpan Catatan
+                  {transactionToEdit ? 'Simpan Perubahan' : 'Simpan Catatan'}
                 </button>
               </div>
             </form>

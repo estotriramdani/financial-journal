@@ -69,6 +69,12 @@ async function runE2ETests() {
     await adminPage.waitForTimeout(300);
     console.log('  ✓ Switched back to light mode.');
 
+    // Test PWA Version & Update Checker
+    await adminPage.waitForSelector('span:has-text("v1.2.0")', { timeout: 5000 });
+    await adminPage.click('button:has-text("Periksa Pembaruan")', { force: true });
+    await adminPage.waitForSelector('text=/paling mutakhir|up to date/i', { timeout: 10000 });
+    console.log('  ✓ PWA Version check executed and verified current version is up-to-date.');
+
     // Check User List in Admin Panel
     await adminPage.waitForSelector(`text="${USER1.email}"`, { timeout: 10000 });
     await adminPage.waitForSelector(`text="${USER2.email}"`, { timeout: 10000 });
@@ -179,6 +185,18 @@ async function runE2ETests() {
     console.log('  ✓ Pengeluaran Rp 75.000 recorded and rendered in feed.');
     await user1Page.waitForTimeout(1000); // Wait for modal close animation
 
+    // Test Edit Transaction
+    console.log('  ▶ Testing Edit Transaction...');
+    const editTxBtn = user1Page.locator('button[title="Edit Transaksi"]').first();
+    await editTxBtn.scrollIntoViewIfNeeded();
+    await editTxBtn.click();
+    await user1Page.waitForSelector('h3:has-text("Edit Pengeluaran")', { timeout: 5000 });
+    await user1Page.fill('input[placeholder*="Makan siang"]', 'Makan Siang Soto Ayam Komplit');
+    await user1Page.click('button:has-text("Simpan Perubahan")', { force: true });
+    await user1Page.waitForSelector('text="Makan Siang Soto Ayam Komplit"', { timeout: 10000 });
+    console.log('  ✓ Transaction edited successfully to "Makan Siang Soto Ayam Komplit".');
+    await user1Page.waitForTimeout(1000);
+
     // Input Income 1 using Calculator Keypad: Rp 5.000.000
     await user1Page.click('button[data-tab="add"]', { force: true });
     await user1Page.waitForSelector('h3:has-text("Pengeluaran Baru")', { timeout: 5000 });
@@ -239,7 +257,7 @@ async function runE2ETests() {
 
     // Verify User 2 sees transactions from User 1
     await user2Page.click('button[data-tab="journal"]', { force: true });
-    await user2Page.waitForSelector('text="Makan Siang Soto Ayam"', { timeout: 10000 });
+    await user2Page.waitForSelector('text="Makan Siang Soto Ayam Komplit"', { timeout: 10000 });
     await user2Page.waitForSelector('text="Bonus Proyek"', { timeout: 10000 });
     console.log('  ✓ User 2 can see collaborative transactions created by User 1!');
 

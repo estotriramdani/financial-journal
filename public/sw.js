@@ -1,10 +1,16 @@
-const CACHE_NAME = 'finjrnl-pwa-v1';
+const CACHE_NAME = 'finjrnl-pwa-v1.2.0';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
   '/icons/icon-192.svg',
   '/icons/icon-512.svg',
 ];
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

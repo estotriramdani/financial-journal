@@ -241,6 +241,27 @@ export async function syncData(supabase: SupabaseClient, activeGroupId?: string 
           // Keep as pending
           remainingTxs.push(tx);
         }
+      } else if (tx.syncStatus === 'pending_update') {
+        const { data, error } = await supabase
+          .from('transactions')
+          .update({
+            category_id: tx.category_id || null,
+            type: tx.type,
+            amount: tx.amount,
+            description: tx.description || null,
+            transaction_date: tx.transaction_date,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', tx.id)
+          .select('*, categories(*), profiles(name, email)')
+          .single();
+
+        if (!error && data) {
+          remainingTxs.push({ ...data, syncStatus: 'synced' });
+          syncedCount++;
+        } else {
+          remainingTxs.push(tx);
+        }
       } else if (tx.syncStatus === 'pending_delete') {
         const { error } = await supabase
           .from('transactions')

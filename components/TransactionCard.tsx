@@ -3,15 +3,17 @@
 import React from 'react';
 import { Transaction } from '@/types/database';
 import { IconRenderer } from './IconRenderer';
-import { CloudOff, Trash2 } from 'lucide-react';
+import { CloudOff, Trash2, Pencil } from 'lucide-react';
 
 interface TransactionCardProps {
   transaction: Transaction;
   currentUserId?: string;
+  canEdit?: boolean;
+  onEdit?: (transaction: Transaction) => void;
   onDelete?: (id: string) => void;
 }
 
-export function TransactionCard({ transaction, currentUserId, onDelete }: TransactionCardProps) {
+export function TransactionCard({ transaction, currentUserId, canEdit, onEdit, onDelete }: TransactionCardProps) {
   const isIncome = transaction.type === 'income';
   const category = transaction.categories;
   const creatorName = transaction.profiles?.name || 'Anggota';
@@ -94,7 +96,17 @@ export function TransactionCard({ transaction, currentUserId, onDelete }: Transa
           </span>
         </div>
 
-        {onDelete && currentUserId === transaction.created_by && (
+        {onEdit && (canEdit ?? (currentUserId === transaction.created_by)) && (
+          <button
+            onClick={() => onEdit(transaction)}
+            className="p-1.5 text-[#64635c] hover:text-[#100f0f] dark:text-[#8e8d85] dark:hover:text-[#fffdf6] rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors opacity-70 group-hover:opacity-100"
+            title="Edit Transaksi"
+          >
+            <Pencil size={15} />
+          </button>
+        )}
+
+        {onDelete && (canEdit ?? (currentUserId === transaction.created_by)) && (
           <button
             onClick={() => {
               if (confirm('Hapus transaksi ini?')) {
