@@ -57,9 +57,7 @@ export function AddTransactionModal({
   const [amountStr, setAmountStr] = useState('');
   const [expression, setExpression] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [transactionDate, setTransactionDate] = useState(() => {
-    return new Date().toISOString().split('T')[0];
-  });
+  const [transactionDate, setTransactionDate] = useState('');
   const [description, setDescription] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { Transaction } from '@/types/database';
 
 export type TimeframeOption = 'this_month' | 'last_month' | 'custom_month' | 'last_30_days' | 'all';
@@ -23,14 +23,18 @@ const DateFilterContext = createContext<DateFilterContextType | undefined>(undef
 export function DateFilterProvider({ children }: { children: React.ReactNode }) {
   const [timeframe, setTimeframe] = useState<TimeframeOption>('this_month');
 
-  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
+
+  useEffect(() => {
     const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
+    setSelectedMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
+  }, []);
 
   const formatMonthDisplay = useCallback((yearMonth: string) => {
+    if (!yearMonth) return 'Bulan Ini';
     try {
       const [y, m] = yearMonth.split('-').map(Number);
+      if (!y || !m) return yearMonth;
       const d = new Date(y, m - 1, 1);
       return new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(d);
     } catch {
@@ -74,12 +78,12 @@ export function DateFilterProvider({ children }: { children: React.ReactNode }) 
 
   const filterTransactions = useCallback(
     (transactions: Transaction[]) => {
+      if (transactions.length === 0 || timeframe === 'all') return transactions;
       const now = new Date();
       const currentYear = now.getFullYear();
       const currentMonth = now.getMonth();
 
       return transactions.filter((t) => {
-        if (timeframe === 'all') return true;
         const tDate = new Date(t.transaction_date);
 
         if (timeframe === 'this_month') {
