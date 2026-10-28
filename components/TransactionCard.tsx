@@ -4,6 +4,7 @@ import React from 'react';
 import { Transaction } from '@/types/database';
 import { IconRenderer } from './IconRenderer';
 import { CloudOff, Trash2, Pencil } from 'lucide-react';
+import { useDialog } from '@/context/DialogContext';
 
 interface TransactionCardProps {
   transaction: Transaction;
@@ -14,8 +15,10 @@ interface TransactionCardProps {
 }
 
 export function TransactionCard({ transaction, currentUserId, canEdit, onEdit, onDelete }: TransactionCardProps) {
+  const { showConfirm } = useDialog();
   const isIncome = transaction.type === 'income';
   const category = transaction.categories;
+  const categoryName = category?.name || 'Tanpa Kategori';
   const creatorName = transaction.profiles?.name || 'Anggota';
   const isLocalPending = transaction.syncStatus === 'pending_insert';
   const isPermitted = canEdit ?? (currentUserId ? currentUserId === transaction.created_by : true);
@@ -129,9 +132,18 @@ export function TransactionCard({ transaction, currentUserId, canEdit, onEdit, o
             {onDelete && (
               <button
                 type="button"
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation();
-                  if (confirm('Hapus transaksi ini?')) {
+                  const confirmed = await showConfirm({
+                    title: 'Hapus Transaksi?',
+                    message: `Apakah Anda yakin ingin menghapus transaksi "${
+                      transaction.description || categoryName
+                    }" sebesar ${formatCurrency(transaction.amount)}? Tindakan ini tidak dapat dibatalkan.`,
+                    variant: 'danger',
+                    confirmText: 'Ya, Hapus',
+                    cancelText: 'Batal',
+                  });
+                  if (confirmed) {
                     onDelete(transaction.id);
                   }
                 }}

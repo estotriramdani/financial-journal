@@ -5,6 +5,7 @@ import { Group, GroupMember, Profile } from '@/types/database';
 import { createClient } from '@/utils/supabase/client';
 import { Plus, UserPlus, UserMinus, Crown, Pencil, Trash2, AlertTriangle, X } from 'lucide-react';
 import { getLocalGroups, saveLocalGroups, setActiveGroupId, updateLocalGroup, deleteLocalGroup } from '@/utils/storage';
+import { useDialog } from '@/context/DialogContext';
 
 interface GroupManagementProps {
   currentGroup: Group | null;
@@ -17,6 +18,7 @@ export function GroupManagement({
   currentUser,
   onGroupSelected,
 }: GroupManagementProps) {
+  const { showConfirm } = useDialog();
   const [groups, setGroups] = useState<Group[]>([]);
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
@@ -201,7 +203,14 @@ export function GroupManagement({
   // Remove member
   const handleRemoveMember = async (memberId: string, memberUserId: string, memberName: string) => {
     if (!currentGroup) return;
-    if (!confirm(`Hapus ${memberName} dari grup?`)) return;
+    const confirmed = await showConfirm({
+      title: 'Keluarkan Anggota?',
+      message: `Apakah Anda yakin ingin mengeluarkan "${memberName}" dari grup "${currentGroup.name}"?`,
+      variant: 'danger',
+      confirmText: 'Ya, Keluarkan',
+      cancelText: 'Batal',
+    });
+    if (!confirmed) return;
 
     try {
       const { error } = await supabase

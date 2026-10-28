@@ -4,6 +4,7 @@ import "./globals.css";
 import { PwaRegister } from "@/components/PwaRegister";
 import { ThemeInitializer } from "@/components/ThemeInitializer";
 import { DateFilterProvider } from "@/context/DateFilterContext";
+import { DialogProvider } from "@/context/DialogContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -69,7 +70,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[#fffdf6] dark:bg-[#100f0f] text-[#100f0f] dark:text-[#fffdf6] antialiased selection:bg-[#e4e24e] selection:text-[#100f0f]">
         <PwaRegister />
         <ThemeInitializer />
-        <DateFilterProvider>{children}</DateFilterProvider>
+        <DialogProvider>
+          <DateFilterProvider>{children}</DateFilterProvider>
+        </DialogProvider>
       </body>
     </html>
   );

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { getPendingSyncCount, syncData } from '@/utils/storage';
 import { applyTheme, getSavedTheme, ThemeMode } from '@/utils/theme';
+import { useDialog } from '@/context/DialogContext';
 
 interface AdminUserProfile extends Profile {
   email_confirmed_at?: string | null;
@@ -30,6 +31,7 @@ interface ProfileSettingsProps {
 }
 
 export function ProfileSettings({ currentUser, onLogout }: ProfileSettingsProps) {
+  const { showAlert, showConfirm } = useDialog();
   // Theme state
   const [theme, setTheme] = useState<ThemeMode>('system');
 
@@ -231,11 +233,36 @@ export function ProfileSettings({ currentUser, onLogout }: ProfileSettingsProps)
       const choiceResult = await deferredPrompt.userChoice;
       if (choiceResult.outcome === 'accepted') {
         setDeferredPrompt(null);
+        await showAlert({
+          title: 'Aplikasi Diinstal',
+          message: 'FINJRNL sedang ditambahkan ke layar utama perangkat Anda.',
+          variant: 'success',
+          confirmText: 'Mantap',
+        });
       }
     } else {
-      alert(
-        'Untuk menginstall di iOS: tap tombol Share lalu pilih "Add to Home Screen". Di Android: buka menu browser dan pilih "Install app".'
-      );
+      const isStandalone =
+        typeof window !== 'undefined' &&
+        (window.matchMedia('(display-mode: standalone)').matches ||
+          (window.navigator as any).standalone === true);
+
+      if (isStandalone) {
+        await showAlert({
+          title: 'PWA Sudah Terpasang',
+          message:
+            'Anda saat ini sudah menjalankan FINJRNL dalam mode aplikasi terpasang (Standalone PWA).',
+          variant: 'success',
+          confirmText: 'Tutup',
+        });
+      } else {
+        await showAlert({
+          title: 'Cara Install Aplikasi (PWA)',
+          message:
+            '• iOS (Safari): Ketuk ikon Share lalu pilih "Add to Home Screen".\n• Android (Chrome): Buka menu browser (⋮) lalu pilih "Install app" atau "Tambahkan ke Layar Utama".',
+          variant: 'info',
+          confirmText: 'Mengerti',
+        });
+      }
     }
   };
 
@@ -326,7 +353,18 @@ export function ProfileSettings({ currentUser, onLogout }: ProfileSettingsProps)
         </div>
 
         <button
-          onClick={onLogout}
+          onClick={async () => {
+            const confirmed = await showConfirm({
+              title: 'Keluar dari Akun?',
+              message: 'Apakah Anda yakin ingin keluar dari sesi akun FINJRNL saat ini?',
+              variant: 'warning',
+              confirmText: 'Ya, Keluar',
+              cancelText: 'Batal',
+            });
+            if (confirmed) {
+              onLogout();
+            }
+          }}
           className="p-3 text-[#64635c] hover:text-red-600 dark:hover:text-red-400 rounded-2xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors active-press"
           title="Keluar"
         >
@@ -459,14 +497,13 @@ export function ProfileSettings({ currentUser, onLogout }: ProfileSettingsProps)
             </div>
           </div>
 
-          {deferredPrompt && (
-            <button
-              onClick={handleInstallApp}
-              className="px-3.5 py-1.5 bg-[#100f0f] dark:bg-[#e4e24e] text-[#fffdf6] dark:text-[#100f0f] rounded-full text-xs font-bold active-press shrink-0 shadow-xs"
-            >
-              Install PWA
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleInstallApp}
+            className="px-3.5 py-1.5 bg-[#100f0f] dark:bg-[#e4e24e] text-[#fffdf6] dark:text-[#100f0f] rounded-full text-xs font-bold active-press shrink-0 shadow-xs"
+          >
+            {deferredPrompt ? 'Install PWA' : 'Info PWA'}
+          </button>
         </div>
 
         {/* Update Checker Action */}
