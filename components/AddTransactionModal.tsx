@@ -7,6 +7,7 @@ import { getLocalCategories, saveLocalTransaction, syncData } from '@/utils/stor
 import { createClient } from '@/utils/supabase/client';
 import { IconRenderer } from './IconRenderer';
 import { AddCategoryModal } from './AddCategoryModal';
+import { DatePicker } from './DatePicker';
 
 interface AddTransactionModalProps {
   isOpen: boolean;
@@ -515,14 +516,10 @@ export function AddTransactionModal({
                   <label className="text-xs font-semibold text-[#64635c] dark:text-[#8e8d85] uppercase tracking-wider block mb-1">
                     Tanggal
                   </label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      value={transactionDate}
-                      onChange={(e) => setTransactionDate(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-white dark:bg-[#1f1e1e] border border-[#100f0f]/15 dark:border-white/10 rounded-2xl text-xs font-medium text-[#100f0f] dark:text-[#fffdf6] focus:outline-hidden focus:border-[#100f0f] dark:focus:border-[#e4e24e]"
-                    />
-                  </div>
+                  <DatePicker
+                    value={transactionDate}
+                    onChange={setTransactionDate}
+                  />
                 </div>
 
                 {/* Description */}
