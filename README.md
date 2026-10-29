@@ -10,15 +10,21 @@
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ecf8e?style=for-the-badge&logo=supabase)](https://supabase.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![PWA](https://img.shields.io/badge/PWA-Ready-purple?style=for-the-badge&logo=pwa)](https://web.dev/progressive-web-apps/)
+[![Mobile Version](https://img.shields.io/badge/Mobile_App-GitHub_Repo-blueviolet?style=for-the-badge&logo=github)](https://github.com/estotriramdani/financial-journal-mobile.git)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
 *Catat pemasukan dan pengeluaran harian secara cepat tanpa hambatan, kelola keuangan bersama keluarga atau tim secara real-time, dan tetap produktif bahkan saat tanpa koneksi internet.*
 
-[Demo Aplikasi](https://financial-journal-six.vercel.app) • [Fitur Utama](#-fitur-utama) • [Instalasi Lokal](#-panduan-instalasi-lokal) • [Arsitektur](#-arsitektur--tech-stack) • [Pengujian](#-pengujian-end-to-end) • [Kontribusi](#-kontribusi)
+[Demo Aplikasi](https://financial-journal-six.vercel.app) • [📱 Repositori Versi Mobile](https://github.com/estotriramdani/financial-journal-mobile.git) • [Fitur Utama](#-fitur-utama) • [Instalasi Lokal](#-panduan-instalasi-lokal) • [Arsitektur](#-arsitektur--tech-stack) • [Pengujian](#-pengujian-end-to-end) • [Kontribusi](#-kontribusi)
 
 ---
 
 </div>
+
+> [!TIP]
+> **Mencari Versi Aplikasi Mobile?**  
+> Untuk melihat atau mengembangkan versi aplikasi seluler (native mobile app), silakan cek repositori berikut:  
+> 📱 **[https://github.com/estotriramdani/financial-journal-mobile.git](https://github.com/estotriramdani/financial-journal-mobile.git)**
 
 ## 🌟 Tentang FINJRNL
 
@@ -107,6 +113,18 @@ flowchart TD
 - **Otentikasi**: Supabase Auth (Email & Password, SSR Client)
 - **E2E Testing**: [Playwright](https://playwright.dev/)
 - **Package Manager**: [pnpm](https://pnpm.io/)
+
+### API Mobile (`/api/mobile/*`)
+
+Repo ini juga menjadi backend untuk aplikasi Flutter [financial-journal-mobile](../financial-journal-mobile).
+Layer REST di `app/api/mobile/` (auth login/register/refresh, bootstrap, transactions CRUD,
+categories, groups, summary, health) memakai **bearer token user** — bukan service-role — sehingga
+Row Level Security Supabase tetap menjadi penegak izin. Semua route menyertakan header CORS.
+
+```bash
+# smoke test end-to-end (server harus berjalan)
+node scripts/smoke-mobile-api.mjs [BASE_URL]
+```
 
 ---
 
