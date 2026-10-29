@@ -147,7 +147,7 @@ export function DatePicker({
                 hidden: 'invisible',
               }}
               components={{
-                Chevron: ({ orientation }) =>
+                Chevron: ({ orientation }: { orientation?: string }) =>
                   orientation === 'left' ? (
                     <ChevronLeft size={15} />
                   ) : (
