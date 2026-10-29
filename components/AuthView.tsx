@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { getAppUrl } from '@/utils/url';
-import { ArrowRight, Lock, Mail, User, ShieldCheck, ArrowLeft, Send } from 'lucide-react';
+import { ArrowRight, Lock, Mail, User, ArrowLeft, Send } from 'lucide-react';
 
 interface AuthViewProps {
   onAuthSuccess: () => void;
@@ -82,14 +82,6 @@ export function AuthView({ onAuthSuccess }: AuthViewProps) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleFillAdmin = () => {
-    setEmail('admin@financialjournal.com');
-    setPassword('Admin123!@#');
-    setMode('login');
-    setError(null);
-    setSuccessMsg(null);
   };
 
   return (
@@ -285,23 +277,6 @@ export function AuthView({ onAuthSuccess }: AuthViewProps) {
             <p>
               Tautan reset password akan dikirim ke email Anda. Jika tidak menerima email, Anda juga dapat meminta Administrator akun untuk mereset password Anda secara instan.
             </p>
-          </div>
-        )}
-
-        {/* Demo / Seed Admin Quick Fill */}
-        {mode === 'login' && (
-          <div className="mt-6 pt-4 border-t border-[#100f0f]/10 dark:border-white/10 text-center">
-            <p className="text-[11px] text-[#64635c] dark:text-[#8e8d85] mb-2 font-medium">
-              Akun Admin Ter-seed:
-            </p>
-            <button
-              type="button"
-              onClick={handleFillAdmin}
-              className="w-full py-2 px-3 bg-[#faf9b6] dark:bg-[#282717] hover:bg-[#faf9b6]/80 dark:hover:bg-[#282717]/80 text-[#100f0f] dark:text-[#e4e24e] rounded-xl text-xs font-bold border border-[#100f0f]/20 dark:border-[#e4e24e]/30 flex items-center justify-center gap-1.5 active-press transition-colors"
-            >
-              <ShieldCheck size={14} />
-              <span>Login sebagai Admin (admin@financialjournal.com)</span>
-            </button>
           </div>
         )}
       </div>
