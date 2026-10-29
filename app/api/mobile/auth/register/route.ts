@@ -31,8 +31,8 @@ export async function POST(req: NextRequest) {
         : null,
       needs_confirmation: needsConfirmation,
     });
-  } catch (e: any) {
-    return err(e?.message || 'Server error', 500);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Server error', 500);
   }
 }
 

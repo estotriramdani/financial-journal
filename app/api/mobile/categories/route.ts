@@ -23,8 +23,8 @@ export async function GET(req: NextRequest) {
     const { data, error } = await query;
     if (error) return fromSbError(error);
     return json({ categories: data || [] });
-  } catch (e: any) {
-    return err(e?.message || 'Server error', 500);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Server error', 500);
   }
 }
 
@@ -54,8 +54,8 @@ export async function POST(req: NextRequest) {
 
     if (error) return fromSbError(error);
     return json({ category: data }, 201);
-  } catch (e: any) {
-    return err(e?.message || 'Server error', 500);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Server error', 500);
   }
 }
 

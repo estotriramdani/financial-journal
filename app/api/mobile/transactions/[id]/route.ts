@@ -37,8 +37,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     if (error) return fromSbError(error);
     return json({ transaction: data });
-  } catch (e: any) {
-    return err(e?.message || 'Server error', 500);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Server error', 500);
   }
 }
 
@@ -53,8 +53,8 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     const { error } = await supabase.from('transactions').delete().eq('id', id);
     if (error) return fromSbError(error);
     return json({ ok: true });
-  } catch (e: any) {
-    return err(e?.message || 'Server error', 500);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Server error', 500);
   }
 }
 
@@ -73,8 +73,8 @@ export async function GET(req: NextRequest, { params }: Params) {
       .single();
     if (error) return fromSbError(error);
     return json({ transaction: data });
-  } catch (e: any) {
-    return err(e?.message || 'Server error', 500);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Server error', 500);
   }
 }
 

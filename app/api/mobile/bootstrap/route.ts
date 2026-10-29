@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     if (groupsR.error) return err(groupsR.error.message, 500);
     if (catsR.error) return err(catsR.error.message, 500);
 
-    const groups = (groupsR.data || []).map((g: any) => ({
+    const groups = (groupsR.data || []).map((g: Record<string, unknown> & { id: string; name: string; description: string | null; created_by: string; created_at: string; updated_at: string; group_members?: { role: string }[] | null }) => ({
       id: g.id,
       name: g.name,
       description: g.description ?? null,
@@ -46,8 +46,8 @@ export async function GET(req: NextRequest) {
       groups,
       categories: catsR.data || [],
     });
-  } catch (e: any) {
-    return err(e?.message || 'Server error', 500);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Server error', 500);
   }
 }
 

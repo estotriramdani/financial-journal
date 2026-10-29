@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { CORS_HEADERS, body, err, json, preflight } from '@/lib/mobile-api';
+import { CORS_HEADERS, body, err, json } from '@/lib/mobile-api';
 
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -26,14 +26,9 @@ export async function POST(req: NextRequest) {
 
     const profile = await fetchProfile(data.session.access_token, email);
     return json({ session: data.session, profile });
-  } catch (e: any) {
-    return err(e?.message || 'Server error', 500);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Server error', 500);
   }
-}
-
-/** POST /api/mobile/auth/register { name, email, password } */
-export async function register(req: NextRequest) {
-  return POST(req);
 }
 
 async function fetchProfile(accessToken: string, email: string) {

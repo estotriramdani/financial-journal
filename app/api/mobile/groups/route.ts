@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
       .order('created_at', { ascending: true });
     if (error) return fromSbError(error);
 
-    const groups = (data || []).map((g: any) => ({
+    const groups = (data || []).map((g: Record<string, unknown> & { id: string; name: string; description: string | null; created_by: string; group_members?: { role: string }[] | null }) => ({
       id: g.id,
       name: g.name,
       description: g.description ?? null,
@@ -30,8 +30,8 @@ export async function GET(req: NextRequest) {
       role: g.group_members?.[0]?.role ?? 'member',
     }));
     return json({ groups });
-  } catch (e: any) {
-    return err(e?.message || 'Server error', 500);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Server error', 500);
   }
 }
 
@@ -58,8 +58,8 @@ export async function POST(req: NextRequest) {
     if (memberErr) return fromSbError(memberErr);
 
     return json({ group: { ...group, role: 'owner' } }, 201);
-  } catch (e: any) {
-    return err(e?.message || 'Server error', 500);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Server error', 500);
   }
 }
 

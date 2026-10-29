@@ -15,7 +15,7 @@
 
 *Catat pemasukan dan pengeluaran harian secara cepat tanpa hambatan, kelola keuangan bersama keluarga atau tim secara real-time, dan tetap produktif bahkan saat tanpa koneksi internet.*
 
-[Demo Aplikasi](https://financial-journal-six.vercel.app) • [📱 Repositori Versi Mobile](https://github.com/estotriramdani/financial-journal-mobile.git) • [Fitur Utama](#-fitur-utama) • [Instalasi Lokal](#-panduan-instalasi-lokal) • [Arsitektur](#-arsitektur--tech-stack) • [Pengujian](#-pengujian-end-to-end) • [Kontribusi](#-kontribusi)
+[Demo Aplikasi](https://financial-journal-six.vercel.app) • [📸 Tangkapan Layar](#-tangkapan-layar-aplikasi-mobile-view) • [📱 Repositori Versi Mobile](https://github.com/estotriramdani/financial-journal-mobile.git) • [Fitur Utama](#-fitur-utama) • [Instalasi Lokal](#-panduan-instalasi-lokal) • [Arsitektur](#-arsitektur--tech-stack) • [Pengujian](#-pengujian-end-to-end) • [Kontribusi](#-kontribusi)
 
 ---
 
@@ -25,6 +25,24 @@
 > **Mencari Versi Aplikasi Mobile?**  
 > Untuk melihat atau mengembangkan versi aplikasi seluler (native mobile app), silakan cek repositori berikut:  
 > 📱 **[https://github.com/estotriramdani/financial-journal-mobile.git](https://github.com/estotriramdani/financial-journal-mobile.git)**
+
+## 📱 Tangkapan Layar Aplikasi (Mobile View)
+
+<div align="center">
+
+| Jurnal & Saldo | Keypad Kalkulator | Laporan & Analisis |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/02-journal-feed.png" width="240" alt="Jurnal Keuangan & Saldo" /> | <img src="docs/screenshots/03-calculator-keypad.png" width="240" alt="Kalkulator Numerik Keypad" /> | <img src="docs/screenshots/04-reports.png" width="240" alt="Statistik & Analisis Laporan" /> |
+| **Feed Transaksi & Saldo** | **Input Cepat Kalkulator** | **Statistik & Kategori** |
+
+| Kelola Grup & Anggota | Mode Gelap (Dark Mode) | Masuk / Autentikasi |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/05-groups.png" width="240" alt="Kelola Grup Keuangan" /> | <img src="docs/screenshots/06-dark-mode.png" width="240" alt="Tema Gelap" /> | <img src="docs/screenshots/01-login.png" width="240" alt="Login & Autentikasi" /> |
+| **Manajemen Kolaborasi Grup** | **Tampilan Tema Gelap** | **Autentikasi & Masuk** |
+
+</div>
+
+---
 
 ## 🌟 Tentang FINJRNL
 

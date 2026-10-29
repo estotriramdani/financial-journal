@@ -76,11 +76,15 @@ export function fromSbError(e: { message: string; code?: string } | null) {
   return err(e?.message || 'Terjadi kesalahan', 500, { code: e?.code });
 }
 
-/** Parse JSON body safely */
-export async function body(req: NextRequest): Promise<Record<string, any>> {
+/** Parse JSON body safely. Loose by design: callers validate each field. */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export async function body(
+  req: NextRequest,
+): Promise<Record<string, any>> {
   try {
     return (await req.json()) as Record<string, any>;
   } catch {
     return {};
   }
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */

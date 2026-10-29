@@ -23,8 +23,8 @@ export async function POST(req: NextRequest) {
       return err(error?.message || 'Sesi tidak valid', 401);
     }
     return json({ session: data.session });
-  } catch (e: any) {
-    return err(e?.message || 'Server error', 500);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Server error', 500);
   }
 }
 

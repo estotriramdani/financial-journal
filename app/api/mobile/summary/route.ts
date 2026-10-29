@@ -47,7 +47,11 @@ export async function GET(req: NextRequest) {
       if (t.type === 'income') totalIncome += amt;
       else totalExpense += amt;
 
-      const cat = (t as any).categories;
+      const raw = (t as Record<string, unknown>).categories;
+      const cat = (Array.isArray(raw) ? raw[0] : raw) as
+        | { id?: string; name?: string; icon?: string | null; color?: string | null }
+        | null
+        | undefined;
       const key = cat?.id ?? 'tanpa_kategori';
       if (!byCategory[key]) {
         byCategory[key] = {
@@ -72,8 +76,8 @@ export async function GET(req: NextRequest) {
       transaction_count: rows.length,
       by_category: Object.values(byCategory).sort((a, b) => b.total - a.total),
     });
-  } catch (e: any) {
-    return err(e?.message || 'Server error', 500);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Server error', 500);
   }
 }
 
