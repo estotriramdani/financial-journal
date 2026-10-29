@@ -117,10 +117,10 @@ flowchart TD
     SupabaseAuth["🔐 Supabase Auth (JWT + Session)"]
     SupabaseDB[("🐘 PostgreSQL 17 + Row Level Security")]
     
-    User <-->|Input Cepat / PWA| Next
-    Next <-->|Instan 0ms (Read/Write)| LocalDB
-    Next <-->|Background Sync / Reconnect| SupabaseDB
-    Next <-->|Otentikasi & Verifikasi| SupabaseAuth
+    User <-->|"Input Cepat / PWA"| Next
+    Next <-->|"Instan 0ms Read / Write"| LocalDB
+    Next <-->|"Background Sync / Reconnect"| SupabaseDB
+    Next <-->|"Otentikasi & Verifikasi"| SupabaseAuth
 ```
 
 - **Framework**: [Next.js 16 (App Router)](https://nextjs.org/) dengan Turbopack
