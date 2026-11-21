@@ -419,7 +419,11 @@ export default function HomePage() {
         {activeTab === 'reports' && (
           <ReportsView
             currentGroup={activeGroup}
+            currentUser={currentUser}
             transactions={transactions}
+            onEditTransaction={handleEditTransaction}
+            onDeleteTransaction={handleDeleteTransaction}
+            isEditModalOpen={isAddTxOpen}
           />
         )}
 

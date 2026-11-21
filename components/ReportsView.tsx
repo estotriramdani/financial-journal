@@ -1,20 +1,43 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Group, Transaction } from '@/types/database';
+import { Group, Profile, Transaction } from '@/types/database';
 import { IconRenderer } from './IconRenderer';
 import { MonthFilterBar } from './MonthFilterBar';
+import { CategoryDetailModal, CategoryBreakdownItem } from './CategoryDetailModal';
 import { useDateFilter } from '@/context/DateFilterContext';
-import { TrendingUp, TrendingDown, Wallet, PieChart } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, PieChart, ChevronRight } from 'lucide-react';
 
 interface ReportsViewProps {
   currentGroup: Group | null;
+  currentUser: Profile | null;
   transactions: Transaction[];
+  onEditTransaction?: (transaction: Transaction) => void;
+  onDeleteTransaction?: (id: string) => void;
+  isEditModalOpen?: boolean;
 }
 
-export function ReportsView({ currentGroup, transactions }: ReportsViewProps) {
+export function ReportsView({
+  currentGroup,
+  currentUser,
+  transactions,
+  onEditTransaction,
+  onDeleteTransaction,
+  isEditModalOpen = false,
+}: ReportsViewProps) {
   const { filterTransactions, timeframeLabel } = useDateFilter();
   const [breakdownType, setBreakdownType] = useState<'expense' | 'income'>('expense');
+  const [selectedCategoryMeta, setSelectedCategoryMeta] = useState<{
+    key: string;
+    name: string;
+    icon?: string | null;
+    color?: string | null;
+  } | null>(null);
+
+  const handleBreakdownTypeChange = (type: 'expense' | 'income') => {
+    setBreakdownType(type);
+    setSelectedCategoryMeta(null);
+  };
 
   // Filter transactions by global timeframe
   const filteredTransactions = useMemo(() => {
@@ -42,11 +65,21 @@ export function ReportsView({ currentGroup, transactions }: ReportsViewProps) {
   }, [filteredTransactions]);
 
   // Category breakdown
-  const categoryStats = useMemo(() => {
+  const categoryStats = useMemo<CategoryBreakdownItem[]>(() => {
     const targetTransactions = filteredTransactions.filter((t) => t.type === breakdownType);
     const totalForType = breakdownType === 'expense' ? totalExpense : totalIncome;
 
-    const map = new Map<string, { name: string; icon?: string | null; color?: string | null; total: number }>();
+    const map = new Map<
+      string,
+      {
+        key: string;
+        name: string;
+        icon?: string | null;
+        color?: string | null;
+        total: number;
+        transactions: Transaction[];
+      }
+    >();
 
     for (const t of targetTransactions) {
       const catKey = t.category_id || 'unknown';
@@ -55,12 +88,15 @@ export function ReportsView({ currentGroup, transactions }: ReportsViewProps) {
       const catColor = t.categories?.color;
 
       const existing = map.get(catKey) || {
+        key: catKey,
         name: catName,
         icon: catIcon,
         color: catColor,
         total: 0,
+        transactions: [],
       };
       existing.total += Number(t.amount);
+      existing.transactions.push(t);
       map.set(catKey, existing);
     }
 
@@ -71,6 +107,28 @@ export function ReportsView({ currentGroup, transactions }: ReportsViewProps) {
       percentage: totalForType > 0 ? (item.total / totalForType) * 100 : 0,
     }));
   }, [filteredTransactions, breakdownType, totalExpense, totalIncome]);
+
+  const selectedCategory = useMemo<CategoryBreakdownItem | null>(() => {
+    if (!selectedCategoryMeta) return null;
+    const found = categoryStats.find((c) => c.key === selectedCategoryMeta.key);
+    if (found) return found;
+    return {
+      key: selectedCategoryMeta.key,
+      name: selectedCategoryMeta.name,
+      icon: selectedCategoryMeta.icon,
+      color: selectedCategoryMeta.color,
+      total: 0,
+      percentage: 0,
+      transactions: [],
+    };
+  }, [categoryStats, selectedCategoryMeta]);
+
+  const handleDeleteFromCategory = (id: string) => {
+    if (selectedCategory && selectedCategory.transactions.length <= 1) {
+      setSelectedCategoryMeta(null);
+    }
+    onDeleteTransaction?.(id);
+  };
 
   // Member contributor breakdown
   const memberStats = useMemo(() => {
@@ -173,16 +231,24 @@ export function ReportsView({ currentGroup, transactions }: ReportsViewProps) {
 
       {/* Category Breakdown Section */}
       <div className="p-5 bg-white dark:bg-[#1a1919] rounded-3xl border border-[#100f0f]/15 dark:border-white/10 shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-black text-[#100f0f] dark:text-[#fffdf6] flex items-center gap-2">
-            <PieChart size={18} />
-            <span>Rincian Berdasarkan Kategori</span>
-          </h3>
+        <div className="flex items-start sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="text-base font-black text-[#100f0f] dark:text-[#fffdf6] flex items-center gap-2">
+              <PieChart size={18} />
+              <span>Rincian Berdasarkan Kategori</span>
+            </h3>
+            {categoryStats.length > 0 && (
+              <p className="text-[11px] text-[#64635c] dark:text-[#8e8d85] mt-0.5">
+                Ketuk kategori untuk melihat rincian transaksi
+              </p>
+            )}
+          </div>
 
           {/* Toggle Expense / Income Breakdown */}
-          <div className="flex p-1 bg-[#100f0f]/5 dark:bg-white/5 rounded-xl border border-[#100f0f]/10 dark:border-white/10">
+          <div className="flex p-1 bg-[#100f0f]/5 dark:bg-white/5 rounded-xl border border-[#100f0f]/10 dark:border-white/10 shrink-0">
             <button
-              onClick={() => setBreakdownType('expense')}
+              type="button"
+              onClick={() => handleBreakdownTypeChange('expense')}
               className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
                 breakdownType === 'expense'
                   ? 'bg-[#100f0f] dark:bg-white/20 text-[#fffdf6]'
@@ -192,7 +258,8 @@ export function ReportsView({ currentGroup, transactions }: ReportsViewProps) {
               Pengeluaran
             </button>
             <button
-              onClick={() => setBreakdownType('income')}
+              type="button"
+              onClick={() => handleBreakdownTypeChange('income')}
               className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
                 breakdownType === 'income'
                   ? 'bg-[#100f0f] dark:bg-white/20 text-[#fffdf6]'
@@ -209,26 +276,52 @@ export function ReportsView({ currentGroup, transactions }: ReportsViewProps) {
             Tidak ada transaksi {breakdownType === 'expense' ? 'pengeluaran' : 'pemasukan'} pada periode ini.
           </p>
         ) : (
-          <div className="space-y-3.5 pt-2">
-            {categoryStats.map((cat, idx) => (
-              <div key={idx} className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
+          <div className="space-y-1.5 pt-1">
+            {categoryStats.map((cat) => (
+              <button
+                key={cat.key}
+                type="button"
+                data-category-row={cat.name}
+                onClick={() =>
+                  setSelectedCategoryMeta({
+                    key: cat.key,
+                    name: cat.name,
+                    icon: cat.icon,
+                    color: cat.color,
+                  })
+                }
+                className="group text-left p-2.5 -mx-2.5 w-[calc(100%+1.25rem)] rounded-2xl hover:bg-[#fffdf6] dark:hover:bg-white/5 border border-transparent hover:border-[#100f0f]/10 dark:hover:border-white/10 transition-all active-press space-y-2 cursor-pointer"
+              >
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
                     <div
-                      className="w-5 h-5 rounded-md flex items-center justify-center text-white"
+                      className="w-7 h-7 rounded-xl flex items-center justify-center text-white shrink-0"
                       style={{ backgroundColor: cat.color || '#64635c' }}
                     >
-                      <IconRenderer name={cat.icon} size={12} />
+                      <IconRenderer name={cat.icon} size={14} />
                     </div>
-                    <span className="font-bold text-[#100f0f] dark:text-[#fffdf6]">{cat.name}</span>
+                    <div className="min-w-0">
+                      <span className="font-bold text-[#100f0f] dark:text-[#fffdf6] block truncate">
+                        {cat.name}
+                      </span>
+                      <span className="text-[10px] font-medium text-[#64635c] dark:text-[#8e8d85]">
+                        {cat.transactions.length} transaksi
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 font-mono">
-                    <span className="font-bold text-[#100f0f] dark:text-[#fffdf6]">
-                      {formatCurrency(cat.total)}
-                    </span>
-                    <span className="text-[11px] text-[#64635c] dark:text-[#8e8d85] w-12 text-right">
-                      {cat.percentage.toFixed(1)}%
-                    </span>
+                  <div className="flex items-center gap-2 font-mono shrink-0">
+                    <div className="text-right">
+                      <span className="font-bold text-[#100f0f] dark:text-[#fffdf6] block">
+                        {formatCurrency(cat.total)}
+                      </span>
+                      <span className="text-[10px] text-[#64635c] dark:text-[#8e8d85] block">
+                        {cat.percentage.toFixed(1)}%
+                      </span>
+                    </div>
+                    <ChevronRight
+                      size={16}
+                      className="text-[#64635c] dark:text-[#8e8d85] group-hover:text-[#100f0f] dark:group-hover:text-[#e4e24e] group-hover:translate-x-0.5 transition-all"
+                    />
                   </div>
                 </div>
 
@@ -242,7 +335,7 @@ export function ReportsView({ currentGroup, transactions }: ReportsViewProps) {
                     }}
                   />
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
@@ -284,6 +377,18 @@ export function ReportsView({ currentGroup, transactions }: ReportsViewProps) {
           </div>
         )}
       </div>
+      {/* Category Detail Modal / Drawer */}
+      <CategoryDetailModal
+        category={selectedCategory}
+        type={breakdownType}
+        timeframeLabel={timeframeLabel}
+        currentUser={currentUser}
+        currentGroup={currentGroup}
+        isEditModalOpen={isEditModalOpen}
+        onClose={() => setSelectedCategoryMeta(null)}
+        onEditTransaction={onEditTransaction}
+        onDeleteTransaction={onDeleteTransaction ? handleDeleteFromCategory : undefined}
+      />
     </div>
   );
 }
